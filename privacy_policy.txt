@@ -1,0 +1,41 @@
+Privacy Policy
+
+LBB Scanner
+Last updated: 03. June 2025
+
+Thank you for using our app.
+
+This privacy policy explains how we handle information when you use our application.
+
+1. Data Collection
+
+Our app does not collect, transmit, or store any personal data. The application operates entirely on your local device and network.
+
+Specifically:
+
+    The app scans your local network to detect Little Backup Box devices.
+
+    All operations are performed locally on your device.
+
+    No information is sent to any external server.
+
+2. Local Storage
+
+Some data (e.g., scan results or user preferences) may be stored locally on your device. This data is never transmitted or shared.
+
+3. Internet Links
+
+The app contains static links to external websites, such as the official GitHub page of the Little Backup Box software. These links are provided for convenience and open in your default browser. We are not responsible for the content or privacy practices of external websites.
+
+4. Permissions
+
+The app may request local network access to function properly. This permission is required solely for the purpose of detecting the Little Backup Box devices within your local network.
+
+5. Changes to this Policy
+
+We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated date.
+
+6. Contact
+
+If you have any questions about this Privacy Policy, you can contact us at:
+https://github.com/outdoorbits/little-backup-box-android

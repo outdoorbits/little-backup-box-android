@@ -89,7 +89,7 @@ private fun startScan(subnet: String) {
 			val ip = "$subnet.$i"
 
 			withContext(Dispatchers.Main) {
-				subnetText.text = "Prüfe: $ip"
+				subnetText.text = "Checking: $ip"
 				progressBar.progress = (index * 100 / allTargets.size)
 			}
 
