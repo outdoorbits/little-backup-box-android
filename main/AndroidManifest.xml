@@ -16,6 +16,9 @@
 			</intent-filter>
 		</activity>
 		<activity android:name=".ResourcesActivity" />
+		<activity android:name=".WikiActivity"
+			android:label="Wiki"
+			android:parentActivityName=".LbbScannerActivity" />
 	</application>
 </manifest>
 <!--        android:theme="@style/Theme.AppCompat.Light.NoActionBar" -->

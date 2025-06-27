@@ -9,4 +9,8 @@
 		android:id="@+id/menu_resources"
 		android:title="Resources"
 		app:showAsAction="never" />
+	<item
+		android:id="@+id/menu_wiki"
+		android:title="Wiki"
+		app:showAsAction="never" />
 </menu>

@@ -43,6 +43,12 @@ class LbbScannerActivity : AppCompatActivity() {
 				startActivity(intent)
 				true
 			}
+			R.id.menu_wiki -> {
+				val intent = Intent(this, WikiActivity::class.java)
+				intent.putExtra("assetFile", "_Sidebar.md")
+				startActivity(intent)
+				true
+			}
 			else -> super.onOptionsItemSelected(item)
 		}
 	}
@@ -159,7 +165,7 @@ class LbbScannerActivity : AppCompatActivity() {
 				val addresses = intf.inetAddresses
 				for (addr in addresses) {
 					if (!addr.isLoopbackAddress && addr is Inet4Address) {
-						val parts = addr.hostAddress.split(".")
+						val parts = addr.hostAddress?.split(".") ?: emptyList()
 						if (parts.size == 4) return parts.subList(0, 3).joinToString(".")
 					}
 				}
