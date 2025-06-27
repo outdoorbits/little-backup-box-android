@@ -11,6 +11,10 @@ import android.content.Context
 import android.view.Menu
 import android.view.MenuItem
 import android.content.Intent
+import java.security.SecureRandom
+import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
+import android.util.Log
 
 class LbbScannerActivity : AppCompatActivity() {
 	private lateinit var subnetText: TextView
@@ -67,57 +71,81 @@ class LbbScannerActivity : AppCompatActivity() {
 		}
 	}
 
-private fun startScan(subnet: String) {
-	stopScan()
-	findingsText.text = ""
-	progressBar.progress = 0
+	private fun verifyServerCertificate(ip: String): Boolean {
+		try {
+			val trustManager = CapturingTrustManager()
+			val sslContext = SSLContext.getInstance("TLS")
+			sslContext.init(null, arrayOf<TrustManager>(trustManager), SecureRandom())
 
-	val sslContext = getInsecureSslContext()
-	val allHostsValid = HostnameVerifier { _, _ -> true }
-
-	val tried = mutableSetOf<Int>()
-	val storedHits = getStoredHits(subnet)
-
-	scanJob = CoroutineScope(Dispatchers.IO).launch {
-		val allTargets = storedHits + (1..254).filterNot { storedHits.contains(it) }
-
-		for ((index, i) in allTargets.withIndex()) {
-			if (!isActive) break
-			if (tried.contains(i)) continue
-			tried.add(i)
-
-			val ip = "$subnet.$i"
-
-			withContext(Dispatchers.Main) {
-				subnetText.text = "Checking: $ip"
-				progressBar.progress = (index * 100 / allTargets.size)
-			}
+			val url = URL("https://$ip/")
+			val conn = url.openConnection() as HttpsURLConnection
+			conn.sslSocketFactory = sslContext.socketFactory
+			conn.connectTimeout = 1000
+			conn.readTimeout = 1000
 
 			try {
-				val url = URL("https://$ip/public/app.php")
-				val conn = url.openConnection() as HttpsURLConnection
-				conn.sslSocketFactory = sslContext.socketFactory
-				conn.hostnameVerifier = allHostsValid
-				conn.connectTimeout = 500
-				conn.readTimeout = 500
-				conn.inputStream.bufferedReader().use {
-					val content = it.readText()
-					if (content.contains("Little Backup Box")) {
-						withContext(Dispatchers.Main) {
-							findingsText.append("https://$ip/\n\n")
-						}
-						saveHit(subnet, i)
+				conn.connect()
+			} catch (e: SSLHandshakeException) {
+				Log.d("CERT", "Handshake failed (expected), inspecting cert anyway")
+			}
+
+			val certs = trustManager.lastServerCerts
+			if (!certs.isNullOrEmpty()) {
+				Log.d("CERT", "Server certificates received: ${certs.size}")
+				for (cert in certs) {
+					Log.d("CERT", "SubjectDN: ${cert.subjectX500Principal.name}")
+
+					if (cert.subjectX500Principal.name.contains("little-backup-box", ignoreCase = true)) {
+						Log.d("CERT", "Match found!")
+						return true
 					}
 				}
-			} catch (_: Exception) { }
+			} else {
+				Log.d("CERT", "No server certificates received.")
+			}
+		} catch (e: Exception) {
+			Log.d("CERT", "Expected exception in verifyServerCertificate (used for certificate capture)", e)
 		}
+		return false
+	}
 
-		withContext(Dispatchers.Main) {
-			subnetText.text = "Scan abgeschlossen"
+	private fun startScan(subnet: String) {
+		stopScan()
+		findingsText.text = ""
+		progressBar.progress = 0
+
+		val tried = mutableSetOf<Int>()
+		val storedHits = getStoredHits(subnet)
+
+		scanJob = CoroutineScope(Dispatchers.IO).launch {
+			val allTargets = storedHits + (1..254).filterNot { storedHits.contains(it) }
+
+			for ((index, i) in allTargets.withIndex()) {
+				if (!isActive) break
+				if (tried.contains(i)) continue
+				tried.add(i)
+
+				val ip = "$subnet.$i"
+
+				withContext(Dispatchers.Main) {
+					subnetText.text = "Checking: $ip"
+					Log.d("CERT", "IP: $ip")
+					progressBar.progress = ((index + 1) * 100 / allTargets.size)
+				}
+
+				if (verifyServerCertificate(ip)) {
+					withContext(Dispatchers.Main) {
+						findingsText.append("https://$ip/\n\n")
+					}
+					saveHit(subnet, i)
+				}
+			}
+
+			withContext(Dispatchers.Main) {
+				subnetText.text = "Scan abgeschlossen"
+			}
 		}
 	}
-}
-
 
 	private fun stopScan() {
 		scanJob?.cancel()
@@ -140,27 +168,30 @@ private fun startScan(subnet: String) {
 		return "192.168.0"
 	}
 
-	private fun getInsecureSslContext(): SSLContext {
-		val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-			override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-			override fun checkClientTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-			override fun checkServerTrusted(chain: Array<java.security.cert.X509Certificate>, authType: String) {}
-		})
-
-		return SSLContext.getInstance("SSL").apply {
-			init(null, trustAllCerts, java.security.SecureRandom())
-		}
+	private fun getStoredHits(subnet: String): List<Int> {
+		val stored = prefs.getStringSet("hits_$subnet", emptySet()) ?: emptySet()
+		return stored.mapNotNull { it.toIntOrNull() }.distinct().sorted()
 	}
 
-private fun getStoredHits(subnet: String): List<Int> {
-	val stored = prefs.getStringSet("hits_$subnet", emptySet()) ?: emptySet()
-	return stored.mapNotNull { it.toIntOrNull() }.distinct().sorted()
+	private fun saveHit(subnet: String, byte: Int) {
+		val key = "hits_$subnet"
+		val current = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
+		current.add(byte.toString())
+		prefs.edit().putStringSet(key, current).apply()
+	}
 }
 
-private fun saveHit(subnet: String, byte: Int) {
-	val key = "hits_$subnet"
-	val current = prefs.getStringSet(key, emptySet())?.toMutableSet() ?: mutableSetOf()
-	current.add(byte.toString())
-	prefs.edit().putStringSet(key, current).apply()
-}
+class CapturingTrustManager : X509TrustManager {
+	var lastServerCerts: Array<out X509Certificate>? = null
+
+	override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
+
+	override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
+		if (chain != null) {
+			lastServerCerts = chain
+		}
+		throw CertificateException("Untrusted on purpose")
+	}
+
+	override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
 }
