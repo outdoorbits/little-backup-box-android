@@ -1,5 +1,5 @@
 
-1. [Home](https://github.com/outdoorbits/little-backup-box/wiki)
+1. [Home](Home.md)
 2. [Hardware](02._Hardware.md)
 	1. [Display](02a._Display.md)
 		1. [ST7735](02a_1._ST7735-Devices.md)

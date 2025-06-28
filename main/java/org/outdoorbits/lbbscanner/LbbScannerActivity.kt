@@ -16,7 +16,7 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import android.util.Log
 
-class LbbScannerActivity : AppCompatActivity() {
+class LbbScannerActivity : BaseActivity() {
 	private lateinit var subnetText: TextView
 	private lateinit var findingsText: TextView
 	private lateinit var progressBar: ProgressBar
@@ -25,32 +25,6 @@ class LbbScannerActivity : AppCompatActivity() {
 	private var scanJob: Job? = null
 	private val prefs by lazy {
 		getSharedPreferences("lbbscanner_prefs", Context.MODE_PRIVATE)
-	}
-
-	override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-		menuInflater.inflate(R.menu.main_menu, menu)
-		return true
-	}
-
-	override fun onOptionsItemSelected(item: MenuItem): Boolean {
-		return when (item.itemId) {
-			R.id.nav_main -> {
-				startActivity(Intent(this, LbbScannerActivity::class.java))
-				true
-			}
-			R.id.menu_resources -> {
-				val intent = Intent(this, ResourcesActivity::class.java)
-				startActivity(intent)
-				true
-			}
-			R.id.menu_wiki -> {
-				val intent = Intent(this, WikiActivity::class.java)
-				intent.putExtra("assetFile", "_Sidebar.md")
-				startActivity(intent)
-				true
-			}
-			else -> super.onOptionsItemSelected(item)
-		}
 	}
 
 	override fun onCreate(savedInstanceState: Bundle?) {

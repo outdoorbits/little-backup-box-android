@@ -9,16 +9,25 @@
 		android:icon="@mipmap/ic_launcher"
 		android:label="LBB Scanner"
 		android:theme="@style/Theme.LbbScanner">
-		<activity android:name=".LbbScannerActivity" android:exported="true">
+		<activity
+			android:name=".LbbScannerActivity"
+			android:exported="true"
+			android:theme="@style/Theme.LbbScanner"
+		>
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
 		</activity>
-		<activity android:name=".ResourcesActivity" />
-		<activity android:name=".WikiActivity"
+		<activity
+			android:name=".ResourcesActivity"
+			android:theme="@style/Theme.LbbScanner"
+		/>
+		<activity
+			android:name=".WikiActivity"
 			android:label="Wiki"
-			android:parentActivityName=".LbbScannerActivity" />
+			android:parentActivityName=".LbbScannerActivity"
+			android:theme="@style/Theme.LbbScanner"
+		/>
 	</application>
 </manifest>
-<!--        android:theme="@style/Theme.AppCompat.Light.NoActionBar" -->

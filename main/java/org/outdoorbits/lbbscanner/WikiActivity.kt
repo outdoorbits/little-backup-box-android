@@ -1,5 +1,7 @@
 package org.outdoorbits.lbbscanner
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.text.Html
 import android.text.method.LinkMovementMethod
@@ -8,120 +10,140 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.io.IOException
-import java.util.regex.Pattern
 
-class WikiActivity : AppCompatActivity() {
+class WikiActivity : BaseActivity() {
+	private lateinit var wikiTextView: TextView
+	private var currentWikiFile: String = "_Sidebar.md"
 
-    private lateinit var wikiTextView: TextView
+	companion object {
+		private const val TAG = "WikiActivity"
+		const val EXTRA_WIKI_FILE = "extra_wiki_file"
+	}
 
-    companion object {
-        private const val TAG = "WikiActivity"
-        const val EXTRA_WIKI_FILE = "extra_wiki_file"
-    }
+	override fun onCreate(savedInstanceState: Bundle?) {
+		super.onCreate(savedInstanceState)
+		setContentView(R.layout.activity_wiki)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_wiki)
+		// Enable back button in action bar
+		supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // Enable back button in action bar
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+		wikiTextView = findViewById(R.id.wikiText)
+		wikiTextView.movementMethod = LinkMovementMethod.getInstance()
 
-        initializeViews()
+		// Start file
+		currentWikiFile = intent.getStringExtra(EXTRA_WIKI_FILE) ?: "_Sidebar.md"
+		loadWikiFile(currentWikiFile)
+	}
 
-        // Get the file to display from intent or show default
-        val wikiFile = intent.getStringExtra(EXTRA_WIKI_FILE) ?: "_Sidebar.md"
-        loadWikiFile(wikiFile)
-    }
+	private fun loadWikiFile(fileName: String) {
+		try {
+			currentWikiFile = fileName
 
-    private fun initializeViews() {
-        wikiTextView = findViewById(R.id.wikiText)
-        wikiTextView.movementMethod = object : LinkMovementMethod() {
-            override fun onTouchEvent(widget: TextView, buffer: android.text.Spannable, event: android.view.MotionEvent): Boolean {
-                val action = event.action
-                if (action == android.view.MotionEvent.ACTION_UP) {
-                    var x = event.x.toInt()
-                    var y = event.y.toInt()
+			val inputStream = assets.open("wiki/$fileName")
+			var markdown = inputStream.bufferedReader().use { it.readText() }.replace(Regex("""\)\s*<br>"""), ")")
 
-                    x -= widget.totalPaddingLeft
-                    y -= widget.totalPaddingTop
-                    x += widget.scrollX
-                    y += widget.scrollY
+			val html = convertMarkdownToHtml(markdown)
 
-                    val layout = widget.layout
-                    val line = layout.getLineForVertical(y)
-                    val off = layout.getOffsetForHorizontal(line, x.toFloat())
+			// Title
+			val title = fileName
+				.replace(".md", "")
+				.replace("_", " ")
+				.replace("-", " ")
+			supportActionBar?.title = title
 
-                    val links = buffer.getSpans(off, off, android.text.style.URLSpan::class.java)
-                    if (links.isNotEmpty()) {
-                        val url = links[0].url
-                        if (url.endsWith(".md")) {
-                            // Handle wiki link
-                            loadWikiFile(url)
-                            return true
-                        }
-                    }
-                }
-                return super.onTouchEvent(widget, buffer, event)
-            }
-        }
-    }
+			wikiTextView.text = Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT, AssetImageGetter(this), null)
 
-    private fun loadWikiFile(fileName: String) {
-        try {
-            val inputStream = assets.open("wiki/$fileName")
-            val markdown = inputStream.bufferedReader().use { it.readText() }
+			// Links will use LinkMovementMethod
+			wikiTextView.movementMethod = object : LinkMovementMethod() {
+				override fun onTouchEvent(widget: TextView, buffer: android.text.Spannable, event: android.view.MotionEvent): Boolean {
+					val action = event.action
+					if (action == android.view.MotionEvent.ACTION_UP) {
+						var x = event.x.toInt()
+						var y = event.y.toInt()
 
-            // Convert markdown to simple HTML
-            val html = convertMarkdownToHtml(markdown)
+						x -= widget.totalPaddingLeft
+						y -= widget.totalPaddingTop
+						x += widget.scrollX
+						y += widget.scrollY
 
-            // Set title based on filename
-            val title = fileName.replace(".md", "").replace("_", " ").replace("-", " ")
-            supportActionBar?.title = title
+						val layout = widget.layout
+						val line = layout.getLineForVertical(y)
+						val off = layout.getOffsetForHorizontal(line, x.toFloat())
 
-            // Display HTML
-            wikiTextView.text = Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT)
+						val links = buffer.getSpans(off, off, android.text.style.URLSpan::class.java)
+						if (links.isNotEmpty()) {
+							val url = links[0].url
+							handleLinkClick(url)
+							return true
+						}
+					}
+					return super.onTouchEvent(widget, buffer, event)
+				}
+			}
 
-        } catch (e: IOException) {
-            Log.e(TAG, "Error loading wiki file: $fileName", e)
-            showError("Datei konnte nicht geladen werden: $fileName")
-        }
-    }
+		} catch (e: IOException) {
+			Log.e(TAG, "Error loading wiki file: $fileName", e)
+			showError("Datei konnte nicht geladen werden: $fileName")
+		}
+	}
 
-    private fun convertMarkdownToHtml(markdown: String): String {
-        var html = markdown
+	private fun handleLinkClick(link: String) {
+		Log.d(TAG, "Clicked link: $link")
+		if (link.endsWith(".md")) {
+			loadWikiFile(link)
+		} else if (link.startsWith("http://") || link.startsWith("https://")) {
+			startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+		} else {
+			Toast.makeText(this, "Unbekannter Link: $link", Toast.LENGTH_SHORT).show()
+		}
+	}
 
-        // Headers
-        html = html.replace(Regex("^#{4}\\s+(.+)$", RegexOption.MULTILINE), "<h4>$1</h4>")
-        html = html.replace(Regex("^#{3}\\s+(.+)$", RegexOption.MULTILINE), "<h3>$1</h3>")
-        html = html.replace(Regex("^#{2}\\s+(.+)$", RegexOption.MULTILINE), "<h2>$1</h2>")
-        html = html.replace(Regex("^#\\s+(.+)$", RegexOption.MULTILINE), "<h1>$1</h1>")
+	private fun convertMarkdownToHtml(markdown: String): String {
+		var html = markdown
 
-        // Bold text
-        html = html.replace(Regex("\\*\\*([^*]+)\\*\\*"), "<b>$1</b>")
+		// Headers
+		html = html.replace(Regex("^#{4}\\s+(.+)$", RegexOption.MULTILINE), "<h4>$1</h4>")
+		html = html.replace(Regex("^#{3}\\s+(.+)$", RegexOption.MULTILINE), "<h3>$1</h3>")
+		html = html.replace(Regex("^#{2}\\s+(.+)$", RegexOption.MULTILINE), "<h2>$1</h2>")
+		html = html.replace(Regex("^#\\s+(.+)$", RegexOption.MULTILINE), "<h1>$1</h1>")
 
-        // Links
-        html = html.replace(Regex("\\[([^\\]]+)\\]\\(([^)]+\\.md)\\)"), "<a href=\"$2\">$1</a>")
-        html = html.replace(Regex("\\[([^\\]]+)\\]\\(([^)]+)\\)"), "<a href=\"$2\">$1</a>")
+		// Bold text
+		html = html.replace(Regex("\\*\\*([^*]+)\\*\\*"), "<b>$1</b>")
 
-        // Images - convert to work with assets
-        html = html.replace(
-            Regex("!\\[([^\\]]*)\\]\\(images/([^)]+)\\)"),
-            "<img src=\"file:///android_asset/wiki/images/$2\" alt=\"$1\" style=\"max-width:100%;height:auto;\" />"
-        )
+		// Replace image links
+		html = html.replace(
+			Regex("""!\[(?<alt>[^\]]*?)\]\(\s*(?<src>images/[^\)\s]+)\s*(?:"[^"]*")?\)"""),
+			"""<img src="file:///android_asset/wiki/${'$'}{src}" alt="${'$'}{alt}" style="max-width:100%;height:auto;" />"""
+		)
 
-        // Line breaks
-        html = html.replace("\n", "<br/>")
+		// Then normal links
+		html = html.replace(
+			Regex("""\[(.*?)\]\((.*?)\)"""),
+			"<a href=\"$2\">$1</a>"
+		)
 
-        return html
-    }
+		// Line breaks
+		html = html.replace("\n", "<br/>")
 
-    private fun showError(message: String) {
-        wikiTextView.text = "Fehler: $message"
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
+		return html
+	}
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
-    }
+
+	private fun showError(message: String) {
+		wikiTextView.text = "Fehler: $message"
+		Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+	}
+
+	override fun onSupportNavigateUp(): Boolean {
+		onBackPressed()
+		return true
+	}
+
+	override fun onBackPressed() {
+		if (currentWikiFile == "_Sidebar.md") {
+			super.onBackPressed()
+		} else {
+			loadWikiFile("_Sidebar.md")
+		}
+	}
 }
