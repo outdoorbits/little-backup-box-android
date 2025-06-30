@@ -16,7 +16,9 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import android.util.Log
 
-class LbbScannerActivity : AppCompatActivity() {
+class LbbScannerActivity : BaseActivity() {
+	override val layoutResId = R.layout.activity_lbbscanner
+
 	private lateinit var subnetText: TextView
 	private lateinit var findingsText: TextView
 	private lateinit var progressBar: ProgressBar
@@ -27,29 +29,10 @@ class LbbScannerActivity : AppCompatActivity() {
 		getSharedPreferences("lbbscanner_prefs", Context.MODE_PRIVATE)
 	}
 
-	override fun onCreateOptionsMenu(menu: Menu?): Boolean {
-		menuInflater.inflate(R.menu.main_menu, menu)
-		return true
-	}
-
-	override fun onOptionsItemSelected(item: MenuItem): Boolean {
-		return when (item.itemId) {
-			R.id.nav_main -> {
-				startActivity(Intent(this, LbbScannerActivity::class.java))
-				true
-			}
-			R.id.menu_resources -> {
-				val intent = Intent(this, ResourcesActivity::class.java)
-				startActivity(intent)
-				true
-			}
-			else -> super.onOptionsItemSelected(item)
-		}
-	}
-
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_lbbscanner)
+
+		supportActionBar?.title = "Scanner"  // optional title for toolbar
 
 		subnetText = findViewById(R.id.subnetText)
 		findingsText = findViewById(R.id.findingsText)
@@ -159,7 +142,7 @@ class LbbScannerActivity : AppCompatActivity() {
 				val addresses = intf.inetAddresses
 				for (addr in addresses) {
 					if (!addr.isLoopbackAddress && addr is Inet4Address) {
-						val parts = addr.hostAddress.split(".")
+						val parts = addr.hostAddress?.split(".") ?: emptyList()
 						if (parts.size == 4) return parts.subList(0, 3).joinToString(".")
 					}
 				}
