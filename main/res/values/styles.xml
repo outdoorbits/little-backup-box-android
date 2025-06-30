@@ -1,11 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-	<style name="Theme.AppCompat.Light.NoActionBar" parent="Theme.AppCompat.Light.DarkActionBar">
-		<item name="colorPrimary">#6200EE</item>
-		<item name="colorPrimaryDark">#3700B3</item>
-		<item name="colorAccent">#03DAC5</item>
-	</style>
 	<style name="AppLinkStyle">
-		<item name="android:textColor">#0000FF</item> <!-- Blau -->
+		<item name="android:textColor">@color/colorBlue</item> <!-- Blau -->
 		<item name="android:textStyle">bold</item>
 	</style>
 </resources>

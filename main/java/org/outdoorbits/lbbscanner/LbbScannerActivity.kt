@@ -17,6 +17,8 @@ import java.security.cert.X509Certificate
 import android.util.Log
 
 class LbbScannerActivity : BaseActivity() {
+	override val layoutResId = R.layout.activity_lbbscanner
+
 	private lateinit var subnetText: TextView
 	private lateinit var findingsText: TextView
 	private lateinit var progressBar: ProgressBar
@@ -29,7 +31,8 @@ class LbbScannerActivity : BaseActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_lbbscanner)
+
+		supportActionBar?.title = "Scanner"  // optional title for toolbar
 
 		subnetText = findViewById(R.id.subnetText)
 		findingsText = findViewById(R.id.findingsText)

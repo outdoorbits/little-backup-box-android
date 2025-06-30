@@ -12,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import java.io.IOException
 
 class WikiActivity : BaseActivity() {
+	override val layoutResId = R.layout.activity_wiki
+
 	private lateinit var wikiTextView: TextView
 	private var currentWikiFile: String = "_Sidebar.md"
 
@@ -22,7 +24,6 @@ class WikiActivity : BaseActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-		setContentView(R.layout.activity_wiki)
 
 		// Enable back button in action bar
 		supportActionBar?.setDisplayHomeAsUpEnabled(true)
