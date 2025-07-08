@@ -7,6 +7,11 @@ import android.view.MenuItem
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+
+import androidx.core.view.updatePadding          //  ← für updatePadding
 
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -14,6 +19,8 @@ abstract class BaseActivity : AppCompatActivity() {
 	protected abstract val layoutResId: Int
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		enableEdgeToEdge()
+
 		super.onCreate(savedInstanceState)
 
 		// Inflate the common base layout with toolbar and content frame
@@ -26,6 +33,28 @@ abstract class BaseActivity : AppCompatActivity() {
 		// Setup the toolbar
 		val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
 		setSupportActionBar(toolbar)
+
+ 		// statusbar-inset as padding on toolbar
+		ViewCompat.setOnApplyWindowInsetsListener(toolbar) { v, insets ->
+			val top = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+			v.updatePadding(top = top)
+			insets
+		}
+
+		ViewCompat.setOnApplyWindowInsetsListener(
+			findViewById(android.R.id.content)
+		) { v, insets ->
+			val safe = insets.getInsets(
+				WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+			)
+			v.updatePadding(
+				left   = safe.left,
+				top    = safe.top,
+				right  = safe.right,
+				bottom = safe.bottom
+			)
+			WindowInsetsCompat.CONSUMED
+		}
 	}
 
 	override fun onCreateOptionsMenu(menu: Menu?): Boolean {

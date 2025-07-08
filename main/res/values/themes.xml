@@ -14,6 +14,8 @@
 	</style>
 
 	<style name="Widget.LbbScanner.Toolbar" parent="Widget.Material3.Toolbar">
+		<item name="android:statusBarColor">@android:color/transparent</item>
+		<item name="android:navigationBarColor">@android:color/transparent</item>
 		<item name="android:background">@color/colorWhite</item>
 		<item name="titleTextColor">?attr/colorOnPrimary</item>
 		<item name="subtitleTextColor">?attr/colorOnPrimary</item>
