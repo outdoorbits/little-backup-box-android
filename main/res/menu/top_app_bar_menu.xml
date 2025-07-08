@@ -13,4 +13,9 @@
 		android:id="@+id/menu_wiki"
 		android:title="Wiki"
 		app:showAsAction="never" />
+	<item
+		android:id="@+id/menu_setup"
+		android:title="Setup"
+		android:icon="@android:drawable/ic_menu_manage"
+		android:showAsAction="never" />
 </menu>

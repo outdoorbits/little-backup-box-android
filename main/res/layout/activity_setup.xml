@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              android:orientation="vertical"
+              android:padding="16dp"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+
+    <!-- Section heading -->
+    <TextView
+        android:id="@+id/textViewHeading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/setup_heading"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:paddingBottom="12dp"/>
+
+    <!-- Instruction + live value -->
+    <TextView
+        android:id="@+id/textViewValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/setup_timeout_label"
+        android:textSize="16sp"
+        android:paddingBottom="8dp"/>
+
+    <!-- Slider -->
+    <com.google.android.material.slider.Slider
+        android:id="@+id/sliderTimeout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="50"
+        android:valueTo="1000"
+        android:stepSize="50"/>
+
+    <Button
+        android:id="@+id/buttonSave"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/setup_save"
+        android:layout_marginTop="12dp"/>
+</LinearLayout>

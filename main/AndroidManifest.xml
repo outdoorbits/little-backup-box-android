@@ -29,5 +29,9 @@
 			android:parentActivityName=".LbbScannerActivity"
 			android:theme="@style/Theme.LbbScanner"
 		/>
+		<activity
+			android:name=".SetupActivity"
+			android:exported="false"
+			android:label="Setup" />
 	</application>
 </manifest>

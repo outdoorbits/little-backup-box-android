@@ -6,12 +6,15 @@ import android.os.Bundle
 import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.util.Log
+import android.view.MotionEvent
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
 import java.io.IOException
+import java.util.regex.Pattern
 
 class WikiActivity : BaseActivity() {
+
 	override val layoutResId = R.layout.activity_wiki
 
 	private lateinit var wikiTextView: TextView
@@ -24,57 +27,67 @@ class WikiActivity : BaseActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-
-		// Enable back button in action bar
 		supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
 		wikiTextView = findViewById(R.id.wikiText)
 		wikiTextView.movementMethod = LinkMovementMethod.getInstance()
 
-		// Start file
+		/* ---- modernes Back-Handling ---- */
+		onBackPressedDispatcher.addCallback(
+			this,
+			object : OnBackPressedCallback(true) {
+				override fun handleOnBackPressed() {
+					if (currentWikiFile == "_Sidebar.md") finish()
+					else loadWikiFile("_Sidebar.md")
+				}
+			}
+		)
+
+		// Startdatei
 		currentWikiFile = intent.getStringExtra(EXTRA_WIKI_FILE) ?: "_Sidebar.md"
 		loadWikiFile(currentWikiFile)
 	}
+
+	/* ---------------- Wiki laden & als HTML zeigen ---------------- */
 
 	private fun loadWikiFile(fileName: String) {
 		try {
 			currentWikiFile = fileName
 
-			val inputStream = assets.open("wiki/$fileName")
-			var markdown = inputStream.bufferedReader().use { it.readText() }.replace(Regex("""\)\s*<br>"""), ")")
+			val markdown = assets.open("wiki/$fileName")
+				.bufferedReader().readText()
+				.replace(Regex("""\)\s*<br>"""), ")")      // dein Work-around
 
 			val html = convertMarkdownToHtml(markdown)
 
-			// Title
-			val title = fileName
-				.replace(".md", "")
-				.replace("_", " ")
-				.replace("-", " ")
-			supportActionBar?.title = title
+			supportActionBar?.title = fileName
+				.removeSuffix(".md")
+				.replace('_', ' ')
+				.replace('-', ' ')
 
-			wikiTextView.text = Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT, AssetImageGetter(this), null)
+			wikiTextView.text = Html.fromHtml(
+				html,
+				Html.FROM_HTML_MODE_COMPACT,
+				AssetImageGetter(this),
+				null
+			)
 
-			// Links will use LinkMovementMethod
+			/* -------- interner Link-Router -------- */
 			wikiTextView.movementMethod = object : LinkMovementMethod() {
-				override fun onTouchEvent(widget: TextView, buffer: android.text.Spannable, event: android.view.MotionEvent): Boolean {
-					val action = event.action
-					if (action == android.view.MotionEvent.ACTION_UP) {
-						var x = event.x.toInt()
-						var y = event.y.toInt()
-
-						x -= widget.totalPaddingLeft
-						y -= widget.totalPaddingTop
-						x += widget.scrollX
-						y += widget.scrollY
-
+				override fun onTouchEvent(
+					widget: TextView,
+					buffer: android.text.Spannable,
+					event: MotionEvent
+				): Boolean {
+					if (event.action == MotionEvent.ACTION_UP) {
+						val x = (event.x - widget.totalPaddingLeft + widget.scrollX).toInt()
+						val y = (event.y - widget.totalPaddingTop + widget.scrollY).toInt()
 						val layout = widget.layout
 						val line = layout.getLineForVertical(y)
 						val off = layout.getOffsetForHorizontal(line, x.toFloat())
-
 						val links = buffer.getSpans(off, off, android.text.style.URLSpan::class.java)
 						if (links.isNotEmpty()) {
-							val url = links[0].url
-							handleLinkClick(url)
+							handleLinkClick(links[0].url)
 							return true
 						}
 					}
@@ -88,63 +101,46 @@ class WikiActivity : BaseActivity() {
 		}
 	}
 
-	private fun handleLinkClick(link: String) {
-		Log.d(TAG, "Clicked link: $link")
-		if (link.endsWith(".md")) {
-			loadWikiFile(link)
-		} else if (link.startsWith("http://") || link.startsWith("https://")) {
-			startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-		} else {
-			Toast.makeText(this, "Unbekannter Link: $link", Toast.LENGTH_SHORT).show()
-		}
-	}
+	/* -------- Markdown-→HTML (Schnell-Regex) -------- */
 
-	private fun convertMarkdownToHtml(markdown: String): String {
-		var html = markdown
-
-		// Headers
+	private fun convertMarkdownToHtml(md: String): String {
+		var html = md
+		// Header
 		html = html.replace(Regex("^#{4}\\s+(.+)$", RegexOption.MULTILINE), "<h4>$1</h4>")
 		html = html.replace(Regex("^#{3}\\s+(.+)$", RegexOption.MULTILINE), "<h3>$1</h3>")
 		html = html.replace(Regex("^#{2}\\s+(.+)$", RegexOption.MULTILINE), "<h2>$1</h2>")
-		html = html.replace(Regex("^#\\s+(.+)$", RegexOption.MULTILINE), "<h1>$1</h1>")
+		html = html.replace(Regex("^#\\s+(.+)$",  RegexOption.MULTILINE), "<h1>$1</h1>")
 
-		// Bold text
+		// Bold
 		html = html.replace(Regex("\\*\\*([^*]+)\\*\\*"), "<b>$1</b>")
 
-		// Replace image links
-		html = html.replace(
-			Regex("""!\[(?<alt>[^\]]*?)\]\(\s*(?<src>images/[^\)\s]+)\s*(?:"[^"]*")?\)"""),
+		// Images
+		val imgPattern = Pattern.compile("""!\[(?<alt>[^\]]*?)\]\(\s*(?<src>images/[^\)\s]+)\s*(?:"[^"]*")?\)""")
+		html = imgPattern.matcher(html).replaceAll(
 			"""<img src="file:///android_asset/wiki/${'$'}{src}" alt="${'$'}{alt}" style="max-width:100%;height:auto;" />"""
 		)
 
-		// Then normal links
-		html = html.replace(
-			Regex("""\[(.*?)\]\((.*?)\)"""),
-			"<a href=\"$2\">$1</a>"
-		)
+		// Links
+		html = html.replace(Regex("""\[(.*?)\]\((.*?)\)"""), "<a href=\"$2\">$1</a>")
 
-		// Line breaks
-		html = html.replace("\n", "<br/>")
-
-		return html
+		// Zeilenumbrüche
+		return html.replace("\n", "<br/>")
 	}
 
+	/* -------- Link-Klicks -------- */
+
+	private fun handleLinkClick(link: String) {
+		Log.d(TAG, "Clicked link: $link")
+		when {
+			link.endsWith(".md") -> loadWikiFile(link)
+			link.startsWith("http://") || link.startsWith("https://") ->
+				startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+			else -> Toast.makeText(this, "Unbekannter Link: $link", Toast.LENGTH_SHORT).show()
+		}
+	}
 
 	private fun showError(message: String) {
 		wikiTextView.text = "Fehler: $message"
 		Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-	}
-
-	override fun onSupportNavigateUp(): Boolean {
-		onBackPressed()
-		return true
-	}
-
-	override fun onBackPressed() {
-		if (currentWikiFile == "_Sidebar.md") {
-			super.onBackPressed()
-		} else {
-			loadWikiFile("_Sidebar.md")
-		}
 	}
 }

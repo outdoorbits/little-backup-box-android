@@ -1,0 +1,8 @@
+	<resources>
+		<string name="scan_completed">Scan completed</string>
+		<string name="setup_heading">LBB-Scanner</string>
+		<string name="setup_timeout_label">
+			Max wait (ms) – varies with Pi model &amp; network
+		</string>
+		<string name="setup_save">Save</string>
+	</resources>

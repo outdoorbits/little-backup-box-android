@@ -78,6 +78,10 @@ abstract class BaseActivity : AppCompatActivity() {
 				startActivity(intent)
 				true
 			}
+			R.id.menu_setup -> {
+				startActivity(Intent(this, SetupActivity::class.java))
+				true
+			}
 			else -> super.onOptionsItemSelected(item)
 		}
 	}

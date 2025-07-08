@@ -62,9 +62,13 @@ class LbbScannerActivity : BaseActivity() {
 
 			val url = URL("https://$ip/")
 			val conn = url.openConnection() as HttpsURLConnection
+
+			val prefs = getSharedPreferences("settings", MODE_PRIVATE)
+			val connectTimeoutMs = prefs.getInt("connectTimeout", 200)
+
 			conn.sslSocketFactory = sslContext.socketFactory
-			conn.connectTimeout = 1000
-			conn.readTimeout = 1000
+			conn.connectTimeout = connectTimeoutMs
+			conn.readTimeout = connectTimeoutMs
 
 			try {
 				conn.connect()
@@ -125,7 +129,7 @@ class LbbScannerActivity : BaseActivity() {
 			}
 
 			withContext(Dispatchers.Main) {
-				subnetText.text = "Scan abgeschlossen"
+				subnetText.text = getString(R.string.scan_completed)
 			}
 		}
 	}
